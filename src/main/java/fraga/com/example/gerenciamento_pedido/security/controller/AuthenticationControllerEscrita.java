@@ -26,8 +26,8 @@ public class AuthenticationControllerEscrita implements DefaultController {
     /**
      * Autentica um usuário e retorna um token JWT.
      *
-     * @param data Dados de login (usuário e senha).
-     * @return Token de autenticação JWT.
+     * @param data Dados de login (usuário e senha)
+     * @return ResponseEntity contendo um DefaultResponse com o token JWT
      */
     @Operation(summary = "Realizar login", description = "Autentica um usuário no sistema e retorna um token JWT para acesso.")
     @ApiResponses(value = {
@@ -44,8 +44,8 @@ public class AuthenticationControllerEscrita implements DefaultController {
     /**
      * Registra um novo usuário no sistema.
      *
-     * @param data Dados do novo usuário.
-     * @return Informações do usuário cadastrado.
+     * @param data Dados do novo usuário
+     * @return ResponseEntity contendo um DefaultResponse com os dados do usuário cadastrado
      */
     @Operation(summary = "Registrar novo usuário", description = "Cria um novo usuário no sistema e retorna suas informações.")
     @ApiResponses(value = {

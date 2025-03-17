@@ -27,7 +27,7 @@ public class AuthenticationControllerLeitura implements DefaultController {
     /**
      * Retorna a lista de roles (permissões) disponíveis no sistema.
      *
-     * @return Conjunto de roles disponíveis.
+     * @return ResponseEntity contendo um DefaultResponse com o conjunto de roles disponíveis
      */
     @Operation(summary = "Listar roles do sistema", description = "Retorna todas as permissões (roles) disponíveis no sistema.")
     @ApiResponses(value = {

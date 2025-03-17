@@ -31,6 +31,14 @@ public class PedidoService {
     private final ClienteService clienteService;
     private final ModelMapper mapper;
 
+    /**
+     * Gera um novo pedido com base nos produtos e quantidades informados.
+     * 
+     * @param pedidoRequest Mapa com IDs dos produtos e suas respectivas quantidades
+     * @param clienteId ID do cliente que está realizando o pedido
+     * @return PedidoResponse com os dados do pedido gerado
+     * @throws BusinessException se não houver estoque suficiente para algum produto
+     */
     @Transactional
     public PedidoResponse gerarPedido(Map<String, Integer> pedidoRequest, String clienteId) {
         Pedido pedido = new Pedido();
@@ -49,6 +57,13 @@ public class PedidoService {
         return criarPedidoResponse(pedido, itemsPedidos);
     }
 
+    /**
+     * Realiza o pagamento de um pedido, alterando seu status para CONCLUIDO.
+     * 
+     * @param id ID do pedido a ser pago
+     * @return PedidoResponse com os dados atualizados do pedido
+     * @throws BusinessException se o pedido não for encontrado ou se não estiver no status AGUARDANDO
+     */
     @Transactional
     public PedidoResponse realizarPagamento(String id) {
         var pedido = buscarPorId(id, Boolean.TRUE);
@@ -71,6 +86,13 @@ public class PedidoService {
         }
     }
 
+    /**
+     * Busca todos os pedidos de um cliente, com opção de filtrar por status.
+     * 
+     * @param clienteId ID do cliente cujos pedidos serão buscados
+     * @param statusPedido Status do pedido para filtrar (opcional)
+     * @return Lista de PedidoResponse com os pedidos encontrados
+     */
     public List<PedidoResponse> buscarPedidosPorCliente(String clienteId, @Nullable EStatusPedido statusPedido) {
         var cliente = clienteService.buscarClientPorIdUser(clienteId);
         List<Pedido> pedidos = pedidoRepository.findByClienteId(cliente.getId());
@@ -84,6 +106,15 @@ public class PedidoService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Busca um pedido específico pelo ID, verificando se pertence ao cliente informado.
+     * 
+     * @param clienteId ID do cliente proprietário do pedido
+     * @param pedidoId ID do pedido a ser buscado
+     * @return PedidoResponse com os dados do pedido
+     * @throws BusinessException se o pedido não for encontrado
+     * @throws ForbiddenException se o pedido não pertencer ao cliente informado
+     */
     public PedidoResponse buscarPedidoPorIdCliente(String clienteId, String pedidoId) {
         var pedido = buscarPorId(pedidoId, Boolean.TRUE);
         var cliente = clienteService.buscarClientPorIdUser(clienteId);

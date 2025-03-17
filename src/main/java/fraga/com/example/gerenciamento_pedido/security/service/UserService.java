@@ -34,10 +34,18 @@ import java.util.stream.Collectors;
 public class UserService {
     private UserRepository userRepository;
     private AuthenticationManager authenticationManager;
-    private TokenService tokenServiceImpl;
+    private TokenService tokenService;
     private RoleRepository roleRepository;
     private ModelMapper modelMapper;
 
+    /**
+     * Realiza o login do usuário.
+     * 
+     * @param data Dados de autenticação (login e senha)
+     * @return LoginResponse contendo o token JWT gerado
+     * @throws UnauthorizedException se as credenciais forem inválidas ou usuário inativo
+     * @throws NotFoundException se o usuário não for encontrado
+     */
     @Transactional
     public LoginResponse login(AuthenticationRequest data) {
         var usernamePassword = new UsernamePasswordAuthenticationToken(data.login(), data.password());
@@ -45,7 +53,7 @@ public class UserService {
 
         User user = (User) auth.getPrincipal();
         isActive(user);
-        var token = tokenServiceImpl.generateToken(user);
+        var token = tokenService.generateToken(user);
         return new LoginResponse(token);
     }
 
@@ -55,6 +63,12 @@ public class UserService {
         }
     }
 
+    /**
+     * Obtém os detalhes do usuário atualmente autenticado.
+     * 
+     * @return UserDetails do usuário autenticado
+     * @throws UnauthorizedException se não houver usuário autenticado
+     */
     public UserDetails getUserDetails() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -75,14 +89,30 @@ public class UserService {
         }
     }
 
+    /**
+     * Constrói uma entidade User com base nos dados do RegisterRequest.
+     * 
+     * @param registerRequest Dados para criação do usuário
+     * @return User entidade construída
+     * @throws BusinessException se a role não for encontrada
+     * @throws ConflictException se o usuário já estiver cadastrado
+     */
     public User buildUser(RegisterRequest registerRequest){
         Set<Role> roles = getUserRoles(registerRequest);
         validAlreadyRegisterUser(registerRequest.login());
         return generatedUser(registerRequest, roles);
     }
 
+    /**
+     * Registra um novo usuário no sistema.
+     * 
+     * @param registerRequest Dados para criação do usuário
+     * @return RegisterResponse com os dados do usuário registrado
+     * @throws BusinessException se a role não for encontrada
+     * @throws ConflictException se o usuário já estiver cadastrado
+     */
     @Transactional
-    public RegisterResponse register(fraga.com.example.gerenciamento_pedido.security.controller.@Valid RegisterRequest registerRequest) {
+    public RegisterResponse register(@Valid RegisterRequest registerRequest) {
         User newUser = buildUser(registerRequest);
         newUser = userRepository.save(newUser);
         return modelMapper.map(newUser, RegisterResponse.class);
