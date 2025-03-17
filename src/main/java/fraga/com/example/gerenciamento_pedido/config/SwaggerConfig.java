@@ -18,9 +18,9 @@ public class SwaggerConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Gerenciamento Escolar")
+                        .title("Gerenciamento de Pedidos")
                         .version("1.0")
-                        .description("API para gerenciamento escolar"))
+                        .description("API para gerenciamento de pedidos"))
                 .addSecurityItem(new SecurityRequirement().addList("BearerAuth"))
                 .components(new Components().addSecuritySchemes("BearerAuth",
                         new SecurityScheme()
@@ -29,7 +29,6 @@ public class SwaggerConfig {
                                 .scheme("bearer")
                                 .bearerFormat("JWT")))
                 .servers(List.of(
-                        new Server().url("54.209.72.148:8080").description("Dev em Cloud"),
                         new Server().url("http://localhost:8080").description("Servidor Local")
                 ));
     }
