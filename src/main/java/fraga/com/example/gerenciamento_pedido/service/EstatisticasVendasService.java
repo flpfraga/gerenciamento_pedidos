@@ -6,6 +6,7 @@ import fraga.com.example.gerenciamento_pedido.repository.strategy.record.Cliente
 import fraga.com.example.gerenciamento_pedido.repository.strategy.record.FaturamentoMensal;
 import fraga.com.example.gerenciamento_pedido.repository.strategy.record.TicketMedio;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.DateTimeException;
@@ -14,6 +15,7 @@ import java.util.List;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class EstatisticasVendasService {
 
     private final EstatisticaRepository estatisticaRepository;
@@ -24,6 +26,7 @@ public class EstatisticasVendasService {
      * @return Lista de clientes com seus valores totais de compras em ordem decrescente
      */
     public List<ClienteMaisGastos> buscarUsuariosMaisCompras(){
+        log.info("m:buscarUsuariosMaisCompras");
         return estatisticaRepository.buscarUsuariosMaisCompras();
     }
 
@@ -34,6 +37,7 @@ public class EstatisticasVendasService {
      * @return Objeto TicketMedio contendo o valor médio das compras do cliente
      */
     public TicketMedio buscarTicketMedioPorCliente(String clienteId){
+        log.info("m:buscarTicketMedioPorCliente clienteId={}", clienteId);
         return estatisticaRepository.buscarTicketMedioPorCliente(clienteId);
     }
 
@@ -46,6 +50,7 @@ public class EstatisticasVendasService {
      * @throws BusinessException se o mês/ano informado for inválido ou futuro
      */
     public FaturamentoMensal getFaturamentoMensal(Integer ano, Integer mes){
+        log.info("m:getFaturamentoMensal ano={} mes={}", ano, mes);
         mesAnoInformadoCorretamente(ano, mes);
         return estatisticaRepository.getFaturamentoMensal(ano, mes);
     }
@@ -57,6 +62,7 @@ public class EstatisticasVendasService {
                 throw new DateTimeException("");
             }
         }catch (DateTimeException e){
+            log.info("m:getFaturamentoMensal ano={} mes={} BusinessException={}", ano, mes, "Data inválida");
             throw new BusinessException("Ano/mês informado inválido");
         }
     }

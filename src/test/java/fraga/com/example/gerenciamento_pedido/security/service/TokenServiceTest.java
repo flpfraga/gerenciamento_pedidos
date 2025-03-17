@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.HashSet;
 
@@ -19,9 +20,13 @@ class TokenServiceTest {
     private TokenService tokenService;
 
     private User user;
+    private static final String SECRET_TEST_KEY = "qt5DRbuVnHHlpHmocTb0AJL9BsyQPpo1edUexquLo_s92FQqacCcw5MjAfY7LtBz4ri0qvyAGQ1bUsTzXLo6fw";
 
     @BeforeEach
     void setUp() {
+        // Configura o valor do secret via reflection
+        ReflectionTestUtils.setField(tokenService, "secret", SECRET_TEST_KEY);
+        
         user = new User();
         user.setId("1");
         user.setLogin("testuser");

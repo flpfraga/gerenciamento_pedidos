@@ -10,11 +10,13 @@ import fraga.com.example.gerenciamento_pedido.security.repository.UserRepository
 import fraga.com.example.gerenciamento_pedido.security.service.RoleService;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class ClienteService {
 
     private final ClienteRepository clienteRepository;
@@ -33,12 +35,16 @@ public class ClienteService {
     @Transactional
     public ClienteResponse cadastrarCliente(ClienteRequest clienteRequest, String id) {
         var user = userRepository.findById(id).orElseThrow(
-                () -> new BusinessException("")
-        );
+                () -> {
+                    log.error("m:cadastrarCliente clienteRequest={} BusinessException{}", clienteRequest,
+                            "Cliente não cadastrado");
+                    throw new BusinessException("Este usuário precisa ser registrado.");
+                });
         Cliente cliente = new Cliente();
         cliente.setUser(user);
         cliente.setCpf(clienteRequest.getCpf());
         cliente.setNome(clienteRequest.getNome());
+        log.info("m:cadastrarCliente clienteRequest={}", clienteRequest);
         return mapper.map(clienteRepository.save(cliente), ClienteResponse.class);
     }
 
@@ -77,8 +83,9 @@ public class ClienteService {
      * @throws BusinessException se o cliente não for encontrado para o usuário logado
      */
     public Cliente buscarClientPorIdUser(String userId) {
+        log.error("m:buscarClientPorIdUser userId={} BusinessException={}", userId, "Usuário logado não localizado");
         return clienteRepository.findByUserId(userId).orElseThrow(
-                () -> new BusinessException("Erro ao localizar o Cliente do usuão logado."));
+                () -> new BusinessException("Erro ao localizar o Cliente do usuário logado."));
     }
 }
 

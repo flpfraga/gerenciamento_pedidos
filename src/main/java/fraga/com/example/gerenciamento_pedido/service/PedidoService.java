@@ -11,6 +11,7 @@ import fraga.com.example.gerenciamento_pedido.repository.PedidoRepository;
 import jakarta.annotation.Nullable;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class PedidoService {
 
     private final PedidoRepository pedidoRepository;
@@ -54,6 +56,7 @@ public class PedidoService {
         pedido.setCliente(cliente);
         pedido = pedidoRepository.save(pedido);
 
+        log.info("m:gerarPedido pedidoRequest={} clientId={}",pedidoRequest, clienteId);
         return criarPedidoResponse(pedido, itemsPedidos);
     }
 
@@ -76,11 +79,13 @@ public class PedidoService {
         pedido.setDataPagamento(LocalDateTime.now());
         pedido.setStatusPedido(EStatusPedido.CONCLUIDO);
         pedido = pedidoRepository.save(pedido);
+        log.info("m:realizarPagamento pedidoId={}",id);
         return criarPedidoResponse(pedido, pedido.getItemsPedidos());
     }
 
     private static void statuPedidoAguardando(Pedido pedido) {
         if (!pedido.getStatusPedido().equals(EStatusPedido.AGUARDANDO)) {
+            log.error("m:realizarPagamento pedidoId={} BusinessException={}",pedido.getId(), "Status!=AGUARDANDO");
             throw new BusinessException("Não é possível fazer pagamento deste pedido. Status do pedido: "
                     + pedido.getStatusPedido());
         }
@@ -101,6 +106,7 @@ public class PedidoService {
             return pedidos.stream().map(pedido -> criarPedidoResponse(pedido, pedido.getItemsPedidos()))
                     .collect(Collectors.toList());
         }
+        log.info("m:buscarPedidosPorCliente clienteId={} statusPedido={}", clienteId, statusPedido);
         return pedidos.stream().filter(pedido -> pedido.getStatusPedido().equals(statusPedido))
                 .map(pedido -> criarPedidoResponse(pedido, pedido.getItemsPedidos()))
                 .collect(Collectors.toList());
@@ -119,8 +125,11 @@ public class PedidoService {
         var pedido = buscarPorId(pedidoId, Boolean.TRUE);
         var cliente = clienteService.buscarClientPorIdUser(clienteId);
         if (pedido.getCliente().equals(cliente)) {
+            log.info("m:buscarPedidoPorIdCliente clienteId={} pedidoId={}", clienteId, pedidoId);
             return mapper.map(pedido, PedidoResponse.class);
         }
+        log.error("m:buscarPedidoPorIdCliente clienteId={} pedidoId={} ForbiddenException={}",
+                clienteId, pedidoId, "Pedido não pertence ao usuário.");
         throw new ForbiddenException("Esse pedido não pertence a esse usuário");
     }
 
@@ -128,6 +137,8 @@ public class PedidoService {
         return pedidoRepository.findById(id).orElseGet(
                 () -> {
                     if (throwable) {
+                        log.error("m:buscarPorId pedidoId={} BusinessException={}",
+                                id, "Pedido não encontrado.");
                         throw new BusinessException("Não foi encontrado um pedido com o ID fornecido");
                     }
                     return null;
@@ -172,6 +183,7 @@ public class PedidoService {
         if (estoquePosVenda >= 0) {
             return estoquePosVenda;
         }
+        log.error("m:ehPossivelVender BusinessException={}","Quantidade insuficiente.");
         throw new BusinessException(
                 "Pedido cancelado. Não existe em estoque quantidade suficiente do produto " + produto.getNome());
     }

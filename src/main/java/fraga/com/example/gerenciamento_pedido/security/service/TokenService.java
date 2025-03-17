@@ -5,6 +5,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import fraga.com.example.gerenciamento_pedido.security.domain.User;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 @Service
+@Slf4j
 public class TokenService {
     @Value("${jwt.secret-key.token}")
     private String secret;
@@ -32,8 +34,10 @@ public class TokenService {
                     .withSubject(user.getLogin())
                     .withExpiresAt(genExpirationDate())
                     .sign(algorithm);
+            log.info("m=generateToken user={}", user);
             return token;
         } catch (JWTCreationException exception) {
+            log.error("m=generateToken user={} jwtCreationException={}", user, exception.getMessage());
             throw new RuntimeException("Error while generating token", exception);
         }
     }
@@ -47,12 +51,14 @@ public class TokenService {
     public String validateToken(String token){
         try {
             Algorithm algorithm = Algorithm.HMAC256(secret);
+            log.info("m=generateToken token={}", token);
             return JWT.require(algorithm)
                     .withIssuer("auth-api")
                     .build()
                     .verify(token)
                     .getSubject();
         } catch (JWTVerificationException exception){
+            log.error("m=validateToken token={} jwtCreationException={}", token, exception.getMessage());
             return "";
         }
     }
