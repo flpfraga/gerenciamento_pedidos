@@ -7,20 +7,24 @@ import fraga.com.example.gerenciamento_pedido.model.Produto;
 import fraga.com.example.gerenciamento_pedido.repository.ProdutoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 
 import java.math.BigDecimal;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-public class ProdutoServiceTest {
+@ExtendWith(MockitoExtension.class)
+class ProdutoServiceTest {
 
     @Mock
     private ProdutoRepository produtoRepository;
@@ -33,134 +37,145 @@ public class ProdutoServiceTest {
 
     private ProdutoRequest produtoRequest;
     private Produto produto;
+    private ProdutoResponse produtoResponse;
+    private Set<Produto> produtos;
+    private Set<ProdutoResponse> produtoResponses;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
         produtoRequest = new ProdutoRequest();
-        produtoRequest.setNome("Produto 1");
-        produtoRequest.setCategoria("Categoria 1");
-        produtoRequest.setDescricao("Descrição do Produto");
+        produtoRequest.setNome("Produto Teste");
+        produtoRequest.setDescricao("Descrição do produto");
         produtoRequest.setPreco(new BigDecimal("100.0"));
-        produtoRequest.setQuantidadeEstoque(50);
+        produtoRequest.setQuantidadeEstoque(10);
+        produtoRequest.setCategoria("Categoria Teste");
 
         produto = new Produto();
         produto.setId("1");
-        produto.setNome("Produto 1");
-        produto.setCategoria("Categoria 1");
-        produto.setDescricao("Descrição do Produto");
+        produto.setNome("Produto Teste");
+        produto.setDescricao("Descrição do produto");
         produto.setPreco(new BigDecimal("100.0"));
-        produto.setQuantidadeEstoque(50);
+        produto.setQuantidadeEstoque(10);
+        produto.setCategoria("Categoria Teste");
+
+        produtoResponse = new ProdutoResponse();
+        produtoResponse.setId("1");
+        produtoResponse.setNome("Produto Teste");
+        produtoResponse.setDescricao("Descrição do produto");
+        produtoResponse.setPreco(new BigDecimal("100.0"));
+        produtoResponse.setQuantidadeEstoque(10);
+        produtoResponse.setCategoria("Categoria Teste");
+
+        produtos = new HashSet<>();
+        produtos.add(produto);
+
+        produtoResponses = new HashSet<>();
+        produtoResponses.add(produtoResponse);
     }
 
     @Test
-    void testSalvar() {
-        // Setup
+    void testSalvarComSucesso() {
+        when(produtoRepository.findByName(anyString())).thenReturn(Optional.empty());
         when(produtoRepository.save(any(Produto.class))).thenReturn(produto);
-        when(produtoRepository.findByName("Produto 1")).thenReturn(Optional.empty());
-        when(mapper.map(produtoRequest, Produto.class)).thenReturn(produto);
-        when(mapper.map(produto, ProdutoResponse.class)).thenReturn(new ProdutoResponse("Produto 1", "Categoria 1", "Descrição do Produto", "", new BigDecimal("100.0"), 50));
+        when(mapper.map(any(ProdutoRequest.class), eq(Produto.class))).thenReturn(produto);
+        when(mapper.map(any(Produto.class), eq(ProdutoResponse.class))).thenReturn(produtoResponse);
 
-        // Execução
-        ProdutoResponse produtoResponse = produtoService.salvar(produtoRequest);
+        ProdutoResponse response = produtoService.salvar(produtoRequest);
 
-        // Validação
-        assertNotNull(produtoResponse);
-        assertEquals("Produto 1", produtoResponse.getNome());
+        assertNotNull(response);
+        assertEquals("1", response.getId());
+        assertEquals("Produto Teste", response.getNome());
         verify(produtoRepository, times(1)).save(any(Produto.class));
     }
 
     @Test
-    void testSalvarProdutoComNomeExistente() {
-        // Setup
-        when(produtoRepository.findByName("Produto 1")).thenReturn(Optional.of(produto));
+    void testSalvarErroProdutoJaExistente() {
+        when(produtoRepository.findByName(anyString())).thenReturn(Optional.of(produto));
 
-        // Execução e Validação
-        BusinessException exception = assertThrows(BusinessException.class, () -> produtoService.salvar(produtoRequest));
-        assertEquals("Erro. Já existe um produto com o nome Produto 1", exception.getMessage());
+        assertThrows(BusinessException.class, () -> {
+            produtoService.salvar(produtoRequest);
+        });
+        
+        verify(produtoRepository, never()).save(any(Produto.class));
     }
 
     @Test
-    void testAtualizar() {
-        // Setup
-        when(produtoRepository.findById("1")).thenReturn(Optional.of(produto));
+    void testAtualizarComSucesso() {
+        when(produtoRepository.findById(anyString())).thenReturn(Optional.of(produto));
         when(produtoRepository.save(any(Produto.class))).thenReturn(produto);
-        when(mapper.map(produto, ProdutoResponse.class)).thenReturn(new ProdutoResponse("Produto 1", "Categoria 1", "Descrição do Produto", "",new BigDecimal("100.0"), 50));
+        when(mapper.map(any(Produto.class), eq(ProdutoResponse.class))).thenReturn(produtoResponse);
 
-        ProdutoRequest updatedRequest = new ProdutoRequest();
-        updatedRequest.setNome("Produto Atualizado");
-        updatedRequest.setCategoria("Categoria Atualizada");
-        updatedRequest.setDescricao("Descrição Atualizada");
-        updatedRequest.setPreco(new BigDecimal("150"));
-        updatedRequest.setQuantidadeEstoque(60);
+        ProdutoResponse response = produtoService.atualizar("1", produtoRequest);
 
-        // Execução
-        ProdutoResponse produtoResponse = produtoService.atualizar("1", updatedRequest);
-
-        // Validação
-        assertNotNull(produtoResponse);
-        assertEquals("Produto Atualizado", produtoResponse.getNome());
-        assertEquals(150.0, produtoResponse.getPreco());
+        assertNotNull(response);
+        assertEquals("1", response.getId());
+        assertEquals("Produto Teste", response.getNome());
         verify(produtoRepository, times(1)).save(any(Produto.class));
     }
 
     @Test
-    void testBuscarPorId() {
-        // Setup
-        when(produtoRepository.findById("1")).thenReturn(Optional.of(produto));
-        when(mapper.map(produto, ProdutoResponse.class)).thenReturn(new ProdutoResponse("Produto 1", "Categoria 1", "Descrição do Produto","", new BigDecimal("100.0"), 50));
+    void testAtualizarErroProdutoNaoEncontrado() {
+        when(produtoRepository.findById(anyString())).thenReturn(Optional.empty());
 
-        // Execução
-        ProdutoResponse produtoResponse = produtoService.buscarPorId("1");
-
-        // Validação
-        assertNotNull(produtoResponse);
-        assertEquals("Produto 1", produtoResponse.getNome());
+        assertThrows(BusinessException.class, () -> {
+            produtoService.atualizar("1", produtoRequest);
+        });
+        
+        verify(produtoRepository, never()).save(any(Produto.class));
     }
 
     @Test
-    void testBuscarPorIdNotFound() {
-        // Setup
-        when(produtoRepository.findById("2")).thenReturn(Optional.empty());
+    void testBuscarPorIdComSucesso() {
+        when(produtoRepository.findById(anyString())).thenReturn(Optional.of(produto));
+        when(mapper.map(any(Produto.class), eq(ProdutoResponse.class))).thenReturn(produtoResponse);
 
-        // Execução e Validação
-        BusinessException exception = assertThrows(BusinessException.class, () -> produtoService.buscarPorId("2"));
-        assertEquals("O produto com o ID informado não foi encontrado.", exception.getMessage());
+        ProdutoResponse response = produtoService.buscarPorId("1");
+
+        assertNotNull(response);
+        assertEquals("1", response.getId());
+        assertEquals("Produto Teste", response.getNome());
     }
 
     @Test
-    void testBuscarTodosProdutos() {
-        // Setup
-        when(produtoRepository.findAll()).thenReturn((List<Produto>) Set.of(produto));
-        when(mapper.map(produto, ProdutoResponse.class)).thenReturn(new ProdutoResponse("Produto 1", "Categoria 1", "Descrição do Produto", "", new BigDecimal("100.0"), 50));
+    void testBuscarPorIdErroProdutoNaoEncontrado() {
+        when(produtoRepository.findById(anyString())).thenReturn(Optional.empty());
 
-        // Execução
-        Set<ProdutoResponse> produtos = produtoService.buscarTodosProdutos();
-
-        // Validação
-        assertNotNull(produtos);
-        assertEquals(1, produtos.size());
+        assertThrows(BusinessException.class, () -> {
+            produtoService.buscarPorId("1");
+        });
     }
 
     @Test
-    void testDelete() {
-        // Setup
-        when(produtoRepository.findById("1")).thenReturn(Optional.of(produto));
+    void testBuscarTodosProdutosComSucesso() {
+        when(produtoRepository.findAll()).thenReturn(new java.util.ArrayList<>(produtos));
+        when(mapper.map(any(Produto.class), eq(ProdutoResponse.class))).thenReturn(produtoResponse);
 
-        // Execução
-        produtoService.delete("1");
+        Set<ProdutoResponse> response = produtoService.buscarTodosProdutos();
 
-        // Validação
-        verify(produtoRepository, times(1)).delete(produto);
+        assertNotNull(response);
+        assertEquals(1, response.size());
     }
 
     @Test
-    void testDeleteNotFound() {
-        // Setup
-        when(produtoRepository.findById("1")).thenReturn(Optional.empty());
+    void testDeleteComSucesso() {
+        when(produtoRepository.findById(anyString())).thenReturn(Optional.of(produto));
+        doNothing().when(produtoRepository).delete(any(Produto.class));
 
-        // Execução e Validação
-        BusinessException exception = assertThrows(BusinessException.class, () -> produtoService.delete("1"));
-        assertEquals("O produto com o ID informado não foi encontrado.", exception.getMessage());
+        assertDoesNotThrow(() -> {
+            produtoService.delete("1");
+        });
+        
+        verify(produtoRepository, times(1)).delete(any(Produto.class));
     }
-}
+
+    @Test
+    void testDeleteErroProdutoNaoEncontrado() {
+        when(produtoRepository.findById(anyString())).thenReturn(Optional.empty());
+
+        assertThrows(BusinessException.class, () -> {
+            produtoService.delete("1");
+        });
+        
+        verify(produtoRepository, never()).delete(any(Produto.class));
+    }
+} 

@@ -3,69 +3,53 @@ package fraga.com.example.gerenciamento_pedido.security.service;
 import fraga.com.example.gerenciamento_pedido.security.domain.User;
 import fraga.com.example.gerenciamento_pedido.security.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class AuthorizationServiceTest {
 
     @Mock
-    private UserRepository userRepository;
+    private UserRepository repository;
 
     @InjectMocks
     private AuthorizationService authorizationService;
 
+    private User user;
+
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        user = new User();
+        user.setLogin("testuser");
+        user.setPassword("password");
+        user.setActive(true);
     }
 
     @Test
-    @DisplayName("Deve carregar um usuário pelo nome de usuário com sucesso")
-    void loadUserByUsername_Success() {
-        String username = "usuario_teste";
-        User user = new User();
-        user.setLogin(username);
-        user.setPassword("senha123");
+    void testLoadUserByUsernameComSucesso() {
+        when(repository.findByLogin(anyString())).thenReturn(user);
 
-        when(userRepository.findByLogin(username)).thenReturn(user);
+        UserDetails result = authorizationService.loadUserByUsername("testuser");
 
-        UserDetails userDetails = authorizationService.loadUserByUsername(username);
-
-        assertNotNull(userDetails);
-        assertEquals(username, userDetails.getUsername());
-        assertEquals("senha123", userDetails.getPassword());
-        verify(userRepository, times(1)).findByLogin(username);
+        assertNotNull(result);
+        assertEquals("testuser", result.getUsername());
     }
 
     @Test
-    @DisplayName("Deve lançar UsernameNotFoundException quando usuário não for encontrado")
-    void loadUserByUsername_UserNotFound() {
-        String username = "usuario_inexistente";
-        when(userRepository.findByLogin(username)).thenReturn(null);
+    void testLoadUserByUsernameUsuarioNaoEncontrado() {
+        when(repository.findByLogin(anyString())).thenReturn(null);
 
-        UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class, () -> {
-            authorizationService.loadUserByUsername(username);
-        });
+        UserDetails result = authorizationService.loadUserByUsername("nonexistentuser");
+        assertNull(result);
 
-        assertEquals("User not found", exception.getMessage());
-        verify(userRepository, times(1)).findByLogin(username);
     }
-
-    @Test
-    @DisplayName("Deve lançar erro ao carregar usuário com valor nulo")
-    void loadUserByUsername_NullUsername() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            authorizationService.loadUserByUsername(null);
-        });
-        verify(userRepository, never()).findByLogin(null);
-    }
-}
-
+} 

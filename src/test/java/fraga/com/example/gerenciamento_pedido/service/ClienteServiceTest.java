@@ -9,17 +9,22 @@ import fraga.com.example.gerenciamento_pedido.security.domain.User;
 import fraga.com.example.gerenciamento_pedido.security.repository.UserRepository;
 import fraga.com.example.gerenciamento_pedido.security.service.RoleService;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.util.Optional;
 
-public class ClienteServiceTest {
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class ClienteServiceTest {
 
     @Mock
     private ClienteRepository clienteRepository;
@@ -36,89 +41,109 @@ public class ClienteServiceTest {
     @InjectMocks
     private ClienteService clienteService;
 
-    private User user;
     private ClienteRequest clienteRequest;
     private Cliente cliente;
+    private User user;
+    private ClienteResponse clienteResponse;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        user = new User();
-        user.setId("1");
-        user.setLogin("john_doe");
-
         clienteRequest = new ClienteRequest();
-        clienteRequest.setNome("John Doe");
+        clienteRequest.setNome("Nome Teste");
         clienteRequest.setCpf("12345678901");
 
+        user = new User();
+        user.setId("user-id-1");
+
         cliente = new Cliente();
-        cliente.setId("123");
-        cliente.setUser(user);
+        cliente.setId("1");
+        cliente.setNome("Nome Teste");
         cliente.setCpf("12345678901");
-        cliente.setNome("John Doe");
+        cliente.setUser(user);
+
+        clienteResponse = new ClienteResponse("1", "Nome Teste", "12345678901");
     }
 
     @Test
-    @DisplayName("Deve cadastrar um novo cliente com sucesso")
-    void testCadastrarCliente() {
-        when(userRepository.findById("1")).thenReturn(java.util.Optional.of(user));
+    void testCadastrarClienteComSucesso() {
+        when(userRepository.findById(anyString())).thenReturn(Optional.of(user));
         when(clienteRepository.save(any(Cliente.class))).thenReturn(cliente);
-        when(mapper.map(cliente, ClienteResponse.class)).thenReturn(new ClienteResponse("123", "John Doe", "12345678901"));
+        when(mapper.map(any(Cliente.class), any())).thenReturn(clienteResponse);
 
-        ClienteResponse clienteResponse = clienteService.cadastrarCliente(clienteRequest, "1");
+        ClienteResponse response = clienteService.cadastrarCliente(clienteRequest, "user-id-1");
 
-        assertNotNull(clienteResponse);
-        assertEquals("John Doe", clienteResponse.getNome());
-        assertEquals("12345678901", clienteResponse.getCpf());
-        verify(clienteRepository, times(1)).save(any(Cliente.class));
+        assertNotNull(response);
+        assertEquals("1", response.getId());
+        assertEquals("Nome Teste", response.getNome());
+        assertEquals("12345678901", response.getCpf());
     }
 
     @Test
-    void testAtualizar() {
-        when(clienteRepository.findByUserId("1")).thenReturn(java.util.Optional.of(cliente));
+    void testCadastrarClienteErroUsuarioNaoEncontrado() {
+        when(userRepository.findById(anyString())).thenReturn(Optional.empty());
+
+        assertThrows(BusinessException.class, () -> {
+            clienteService.cadastrarCliente(clienteRequest, "user-id-inexistente");
+        });
+    }
+
+    @Test
+    void testAtualizarComSucesso() {
+        when(clienteRepository.findByUserId(anyString())).thenReturn(Optional.of(cliente));
         when(clienteRepository.save(any(Cliente.class))).thenReturn(cliente);
-        when(mapper.map(cliente, ClienteResponse.class)).thenReturn(new ClienteResponse("123", "John Updated", "12345678901"));
+        when(mapper.map(any(Cliente.class), any())).thenReturn(clienteResponse);
 
-        ClienteRequest updatedRequest = new ClienteRequest();
-        updatedRequest.setNome("John Updated");
-        ClienteResponse clienteResponse = clienteService.atualizar(updatedRequest, "1");
+        ClienteResponse response = clienteService.atualizar(clienteRequest, "user-id-1");
 
-        assertNotNull(clienteResponse);
-        assertEquals("John Updated", clienteResponse.getNome());
-        verify(clienteRepository, times(1)).save(any(Cliente.class));
+        assertNotNull(response);
+        assertEquals("1", response.getId());
+        assertEquals("Nome Teste", response.getNome());
     }
 
     @Test
-    void testBuscarUserPorId() {
-        when(userRepository.findById("1")).thenReturn(java.util.Optional.of(user));
+    void testAtualizarErroClienteNaoEncontrado() {
+        when(clienteRepository.findByUserId(anyString())).thenReturn(Optional.empty());
 
-        User foundUser = clienteService.buscarUserPorId("1");
-
-        assertNotNull(foundUser);
-        assertEquals("john_doe", foundUser.getUsername());
+        assertThrows(BusinessException.class, () -> {
+            clienteService.atualizar(clienteRequest, "user-id-inexistente");
+        });
     }
 
     @Test
-    void testBuscarUserPorIdNotFound() {
-        when(userRepository.findById("2")).thenReturn(java.util.Optional.empty());
+    void testBuscarUserPorIdComSucesso() {
+        when(userRepository.findById(anyString())).thenReturn(Optional.of(user));
 
-        assertThrows(BusinessException.class, () -> clienteService.buscarUserPorId("2"));
+        User userEncontrado = clienteService.buscarUserPorId("user-id-1");
+
+        assertNotNull(userEncontrado);
+        assertEquals("user-id-1", userEncontrado.getId());
     }
 
     @Test
-    void testBuscarClientPorIdUser() {
-        when(clienteRepository.findByUserId("1")).thenReturn(java.util.Optional.of(cliente));
+    void testBuscarUserPorIdErroUsuarioNaoEncontrado() {
+        when(userRepository.findById(anyString())).thenReturn(Optional.empty());
 
-        Cliente foundCliente = clienteService.buscarClientPorIdUser("1");
-
-        assertNotNull(foundCliente);
-        assertEquals("John Doe", foundCliente.getNome());
+        assertThrows(BusinessException.class, () -> {
+            clienteService.buscarUserPorId("user-id-inexistente");
+        });
     }
 
     @Test
-    void testBuscarClientPorIdUserNotFound() {
-        when(clienteRepository.findByUserId("2")).thenReturn(java.util.Optional.empty());
+    void testBuscarClientePorIdUserComSucesso() {
+        when(clienteRepository.findByUserId(anyString())).thenReturn(Optional.of(cliente));
 
-        assertThrows(BusinessException.class, () -> clienteService.buscarClientPorIdUser("2"));
+        Cliente clienteEncontrado = clienteService.buscarClientPorIdUser("user-id-1");
+
+        assertNotNull(clienteEncontrado);
+        assertEquals("1", clienteEncontrado.getId());
     }
-}
+
+    @Test
+    void testBuscarClientePorIdUserErroClienteNaoEncontrado() {
+        when(clienteRepository.findByUserId(anyString())).thenReturn(Optional.empty());
+
+        assertThrows(BusinessException.class, () -> {
+            clienteService.buscarClientPorIdUser("user-id-inexistente");
+        });
+    }
+} 

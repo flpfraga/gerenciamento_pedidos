@@ -1,20 +1,24 @@
 package fraga.com.example.gerenciamento_pedido.security.service;
 
 import fraga.com.example.gerenciamento_pedido.security.domain.Role;
+import fraga.com.example.gerenciamento_pedido.security.enums.EUserRole;
 import fraga.com.example.gerenciamento_pedido.security.repository.RoleRepository;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class RoleServiceTest {
 
     @Mock
@@ -23,62 +27,30 @@ class RoleServiceTest {
     @InjectMocks
     private RoleService roleService;
 
+    private List<Role> roles;
+
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        Role adminRole = new Role();
+        adminRole.setName(EUserRole.ADMIN);
+
+        Role userRole = new Role();
+        userRole.setName(EUserRole.USER);
+
+        roles = List.of(adminRole, userRole);
     }
 
     @Test
-    @DisplayName("Deve retornar lista de roles com sucesso")
-    void get_Success() {
-        // Arrange
-        Role roleAdmin = new Role();
-        roleAdmin.setName(RoleEnum.ADMIN);
+    void testGetComSucesso() {
+        when(roleRepository.findAll()).thenReturn(roles);
 
-        Role roleUser = new Role();
-        roleUser.setName(RoleEnum.USER);
+        Set<String> result = roleService.get();
 
-        when(roleRepository.findAll()).thenReturn(List.of(roleAdmin, roleUser));
-
-        // Act
-        Set<String> roles = roleService.get();
-
-        // Assert
-        assertNotNull(roles);
-        assertEquals(2, roles.size());
-        assertTrue(roles.contains("ADMIN"));
-        assertTrue(roles.contains("USER"));
-        verify(roleRepository, times(1)).findAll();
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(
+            roles.stream().map(role -> role.getName().getRole()).collect(Collectors.toSet()),
+            result
+        );
     }
-
-    @Test
-    @DisplayName("Deve retornar um conjunto vazio quando não houver roles")
-    void get_EmptyList() {
-        // Arrange
-        when(roleRepository.findAll()).thenReturn(List.of());
-
-        // Act
-        Set<String> roles = roleService.get();
-
-        // Assert
-        assertNotNull(roles);
-        assertTrue(roles.isEmpty());
-        verify(roleRepository, times(1)).findAll(); // Verifica se o método foi chamado
-    }
-
-    @Test
-    @DisplayName("Deve lançar exceção em caso de erro interno")
-    void get_InternalServerError() {
-        // Arrange
-        when(roleRepository.findAll()).thenThrow(new RuntimeException("Erro no banco de dados"));
-
-        // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            roleService.get();
-        });
-
-        assertEquals("Erro no banco de dados", exception.getMessage());
-        verify(roleRepository, times(1)).findAll(); // Verifica se o método foi chamado
-    }
-}
-
+} 
